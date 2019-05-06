@@ -150,7 +150,7 @@ public class HttpServerVerticle extends AbstractVerticle {
     context.response().putHeader("Location", location);
     context.response().end();
   }
-  
+
   private void pageDeletionHandler(RoutingContext context) {
     String id = context.request().getParam("id");
     JsonObject request = new JsonObject().put("id", id);
