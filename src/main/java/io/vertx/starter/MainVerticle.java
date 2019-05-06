@@ -1,8 +1,10 @@
 package io.vertx.starter;
 
+import com.github.rjeschke.txtmark.Processor;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpServer;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -13,6 +15,7 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
 
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,6 +31,11 @@ public class MainVerticle extends AbstractVerticle {
   private JDBCClient dbClient;
   private static final Logger LOGGER = LoggerFactory.getLogger(MainVerticle.class);
   private FreeMarkerTemplateEngine templateEngine;
+
+  private static final String EMPTY_PAGE_MARKDOWN =
+    "# A new page\n" +
+      "\n" +
+      "Feel-free to write in Markdown!\n";
 
   @Override
   public void start(Future<Void> startFuture) throws Exception {
@@ -73,10 +81,10 @@ public class MainVerticle extends AbstractVerticle {
     Router router = Router.router(vertx);
     router.get("/").handler(this::indexHandler);
     router.get("/wiki/:page").handler(this::pageRenderingHandler);
-    router.post().handler(BodyHandler.create());
-    router.post("/save").handler(this::pageUpdateHandler);
-    router.post("/create").handler(this::pageCreateHandler);
-    router.post("/delete").handler(this::pageDeletionHandler);
+//    router.post().handler(BodyHandler.create());
+//    router.post("/save").handler(this::pageUpdateHandler);
+//    router.post("/create").handler(this::pageCreateHandler);
+//    router.post("/delete").handler(this::pageDeletionHandler);
 
     templateEngine = FreeMarkerTemplateEngine.create(vertx);
 
@@ -121,6 +129,50 @@ public class MainVerticle extends AbstractVerticle {
             });
           } else {
             context.fail(res.cause());
+          }
+        });
+      } else {
+        context.fail(car.cause());
+      }
+    });
+  }
+
+  private void pageRenderingHandler(RoutingContext context){
+    String page = context.request().getParam("page");
+
+    dbClient.getConnection(car -> {
+      if (car.succeeded()){
+        SQLConnection connection = car.result();
+        connection.queryWithParams(SQL_GET_PAGE, new JsonArray().add(page), fetch -> {
+          connection.close();
+          if (fetch.succeeded()){
+
+            JsonArray row = fetch.result().getResults()
+              .stream()
+              .findFirst()
+              .orElseGet(() -> new JsonArray().add(-1).add(EMPTY_PAGE_MARKDOWN));
+
+            Integer id = row.getInteger(0);
+            String rawContent = row.getString(1);
+
+            context.put("title", page);
+            context.put("id", id);
+            context.put("newPage", fetch.result().getResults().size() == 0 ? "yes" : "no");
+            context.put("rawContent", rawContent);
+            context.put("content", Processor.process(rawContent));
+            context.put("timestamp", new Date().toString());
+
+
+            templateEngine.render(context.data(), "templates/page.ftl", ar ->{
+              if (ar.succeeded()){
+                context.response().putHeader("Content-Type", "text/html");
+                context.response().end(ar.result());
+              } else {
+                context.fail(ar.cause());
+              }
+            });
+          } else {
+            context.fail(fetch.cause());
           }
         });
       } else {
