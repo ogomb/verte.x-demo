@@ -81,9 +81,9 @@ public class MainVerticle extends AbstractVerticle {
     Router router = Router.router(vertx);
     router.get("/").handler(this::indexHandler);
     router.get("/wiki/:page").handler(this::pageRenderingHandler);
-//    router.post().handler(BodyHandler.create());
+    router.post().handler(BodyHandler.create());
 //    router.post("/save").handler(this::pageUpdateHandler);
-//    router.post("/create").handler(this::pageCreateHandler);
+    router.post("/create").handler(this::pageCreateHandler);
 //    router.post("/delete").handler(this::pageDeletionHandler);
 
     templateEngine = FreeMarkerTemplateEngine.create(vertx);
@@ -179,5 +179,18 @@ public class MainVerticle extends AbstractVerticle {
         context.fail(car.cause());
       }
     });
+  }
+
+
+  private void pageCreateHandler(RoutingContext context){
+    String pageName = context.request().getParam("name");
+    String location = "/wiki/" + pageName;
+
+    if (pageName == null || pageName.isEmpty()){
+      location = "/";
+    }
+    context.response().setStatusCode(303);
+    context.response().putHeader("Location", location);
+    context.response().end();
   }
 }
