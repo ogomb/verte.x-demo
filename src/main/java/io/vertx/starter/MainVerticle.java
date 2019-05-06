@@ -2,11 +2,15 @@ package io.vertx.starter;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
+import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.SQLConnection;
+import io.vertx.ext.web.Router;
+import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
 
 public class MainVerticle extends AbstractVerticle {
 
@@ -16,8 +20,10 @@ public class MainVerticle extends AbstractVerticle {
   private static final String SQL_SAVE_PAGE = "update Pages set Content = ? where Id = ?";
   private static final String SQL_ALL_PAGES = "select Name from Pages";
   private static final String SQL_DELETE_PAGE = "delete from Pages where Id = ?";
+
   private JDBCClient dbClient;
   private static final Logger LOGGER = LoggerFactory.getLogger(MainVerticle.class);
+  private FreeMarkerTemplateEngine templateEngine;
 
   @Override
   public void start(Future<Void> startFuture) throws Exception {
@@ -58,6 +64,29 @@ public class MainVerticle extends AbstractVerticle {
 
   private Future startHttpServer(){
     Future future = Future.future();
+    HttpServer server = vertx.createHttpServer();
+
+    Router router = Router.router(vertx);
+    router.get("/").handler(this::indexHandler);
+    router.get("/wiki/:page").handler(this::pageRenderingHandler);
+    router.post().handler(BodyHandler.create());
+    router.post("/save").handler(this::pageUpdateHandler);
+    router.post("/create").handler(this::pageCreateHandler);
+    router.post("/delete").handler(this::pageDeletionHandler);
+
+    templateEngine = FreeMarkerTemplateEngine.create(vertx);
+
+    server
+      .requestHandler(router)
+      .listen(8080, ar-> {
+        if (ar.succeeded()){
+          LOGGER.info("HTTP server running on port 8080");
+          future.complete();
+        } else {
+          LOGGER.error("Could not start HTTP server", ar.cause());
+          future.fail(ar.cause());
+        }
+      });
     return future;
   }
 }
