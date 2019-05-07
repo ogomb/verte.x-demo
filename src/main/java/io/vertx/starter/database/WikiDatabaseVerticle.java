@@ -1,4 +1,4 @@
-package io.vertx.starter;
+package io.vertx.starter.database;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
@@ -31,15 +31,6 @@ public class WikiDatabaseVerticle extends AbstractVerticle {
   private static final Logger LOGGER = LoggerFactory.getLogger(WikiDatabaseVerticle.class);
 
   private JDBCClient dbClient;
-
-  private enum SqlQuery {
-    CREATE_PAGES_TABLE,
-    ALL_PAGES,
-    GET_PAGE,
-    CREATE_PAGE,
-    SAVE_PAGE,
-    DELETE_PAGE
-  }
 
   private final HashMap<SqlQuery, String> sqlQueries = new HashMap<>();
 
@@ -84,7 +75,7 @@ public class WikiDatabaseVerticle extends AbstractVerticle {
         startFuture.fail(ar.cause());
       } else {
         SQLConnection connection = ar.result();
-        connection.execute(sqlQueries.get(SqlQuery.CREATE_PAGES_TABLE), create -> {
+        connection.execute(sqlQueries.get(io.vertx.starter.database.SqlQuery.CREATE_PAGES_TABLE), create -> {
           connection.close();
           if (create.failed()) {
             LOGGER.error("Database preparation error", create.cause());
@@ -96,12 +87,6 @@ public class WikiDatabaseVerticle extends AbstractVerticle {
         });
       }
     });
-  }
-
-  public enum ErrorCodes {
-    NO_ACTION_SPECIFIED,
-    BAD_ACTION,
-    DB_ERROR
   }
 
   public void onMessage(Message<JsonObject> message) {
