@@ -38,5 +38,9 @@ public interface WikiDatabaseService {
     <WikiDatabaseService>> readyHandler) {
     return new WikiDatabaseServiceImpl(dbClient, sqlQueries, readyHandler);
   }
-  
+
+  @GenIgnore
+  static WikiDatabaseService createProxy(Vertx vertx, String address) {
+    return new WikiDatabaseServiceVertxEBProxy(vertx, address);
+  }
 }
