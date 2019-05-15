@@ -34,6 +34,9 @@ public interface WikiDatabaseService {
   WikiDatabaseService deletePage(int id, Handler<AsyncResult<Void>> resultHandler);
 
   @Fluent
+  WikiDatabaseService fetchPageById(int id, Handler<AsyncResult<JsonObject>> resultHandler);
+
+  @Fluent
   WikiDatabaseService fetchAllPagesData(Handler<AsyncResult<List<JsonObject>>> resultHandler);
 
 
